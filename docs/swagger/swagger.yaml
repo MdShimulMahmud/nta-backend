@@ -1,0 +1,938 @@
+basePath: /api/v1
+definitions:
+  interfaces.NetplanNameservers:
+    properties:
+      addresses:
+        items:
+          type: string
+        type: array
+      search:
+        items:
+          type: string
+        type: array
+    type: object
+  interfaces.NetplanRoute:
+    properties:
+      to:
+        type: string
+      via:
+        type: string
+    type: object
+  interfaces.UpdateInterfaceStateRequest:
+    properties:
+      state:
+        enum:
+        - up
+        - down
+        type: string
+    required:
+    - state
+    type: object
+  interfaces.UpdateNetplanRequest:
+    properties:
+      addresses:
+        items:
+          type: string
+        type: array
+      dhcp4:
+        type: boolean
+      dhcp6:
+        type: boolean
+      gateway4:
+        type: string
+      interface:
+        type: string
+      nameservers:
+        $ref: '#/definitions/interfaces.NetplanNameservers'
+      optional:
+        type: boolean
+      routes:
+        items:
+          $ref: '#/definitions/interfaces.NetplanRoute'
+        type: array
+    required:
+    - interface
+    type: object
+  interfaces.UpdatePromiscModeRequest:
+    properties:
+      enabled:
+        type: boolean
+    required:
+    - enabled
+    type: object
+  services.PipelineToggleRequest:
+    properties:
+      enabled:
+        type: boolean
+      pipeline_id:
+        type: string
+    required:
+    - pipeline_id
+    type: object
+  services.ServiceAction:
+    enum:
+    - start
+    - stop
+    - restart
+    - reload
+    - status
+    - enable
+    - disable
+    type: string
+    x-enum-varnames:
+    - ActionStart
+    - ActionStop
+    - ActionRestart
+    - ActionReload
+    - ActionStatus
+    - ActionEnable
+    - ActionDisable
+  services.ServiceActionRequest:
+    properties:
+      action:
+        allOf:
+        - $ref: '#/definitions/services.ServiceAction'
+        enum:
+        - start
+        - stop
+        - restart
+        - reload
+        - status
+    required:
+    - action
+    type: object
+  services.UpdateSuricataHomeNetRequest:
+    properties:
+      networks:
+        items:
+          type: string
+        type: array
+    required:
+    - networks
+    type: object
+  services.UpdateSuricataInterfaceRequest:
+    properties:
+      interface:
+        type: string
+    required:
+    - interface
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@amplifysec.net
+    name: API Support
+  description: Network Threat Analysis Backend API for managing network interfaces
+    and system services
+  license:
+    name: MIT
+    url: http://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: NTA Backend API
+  version: "1.0"
+paths:
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Check if the API is running
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Health check
+      tags:
+      - health
+  /interfaces:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all available network interfaces with their details
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: List all network interfaces
+      tags:
+      - interfaces
+  /interfaces/{name}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information about a specific network interface
+      parameters:
+      - description: Interface name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get network interface details
+      tags:
+      - interfaces
+  /interfaces/{name}/check-firewall-logs:
+    get:
+      consumes:
+      - application/json
+      description: Check if firewall logs are being received on an interface using
+        tcpdump (port 514)
+      parameters:
+      - description: Interface name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Check firewall logs with tcpdump
+      tags:
+      - interfaces
+  /interfaces/{name}/check-network-logs:
+    get:
+      consumes:
+      - application/json
+      description: Check if network logs are being received on an interface using
+        tcpdump
+      parameters:
+      - description: Interface name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Check network logs with tcpdump
+      tags:
+      - interfaces
+  /interfaces/{name}/promiscuous:
+    put:
+      consumes:
+      - application/json
+      description: Enable or disable promiscuous mode on an interface
+      parameters:
+      - description: Interface name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Promiscuous mode update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/interfaces.UpdatePromiscModeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update promiscuous mode
+      tags:
+      - interfaces
+  /interfaces/{name}/state:
+    put:
+      consumes:
+      - application/json
+      description: Bring an interface up or down
+      parameters:
+      - description: Interface name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: State update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/interfaces.UpdateInterfaceStateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update interface state
+      tags:
+      - interfaces
+  /interfaces/netplan:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve the current netplan configuration
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get netplan configuration
+      tags:
+      - interfaces
+    put:
+      consumes:
+      - application/json
+      description: Update netplan configuration for a specific interface
+      parameters:
+      - description: Netplan update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/interfaces.UpdateNetplanRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update netplan configuration
+      tags:
+      - interfaces
+  /services/{name}/action:
+    post:
+      consumes:
+      - application/json
+      description: Perform an action (start, stop, restart, reload) on a service
+      parameters:
+      - description: Service name
+        in: path
+        name: name
+        required: true
+        type: string
+      - description: Action request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.ServiceActionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Perform service action
+      tags:
+      - services
+  /services/{name}/status:
+    get:
+      consumes:
+      - application/json
+      description: Get the current status of a system service
+      parameters:
+      - description: Service name
+        in: path
+        name: name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get service status
+      tags:
+      - services
+  /services/logstash/config/check:
+    get:
+      consumes:
+      - application/json
+      description: Test Logstash configuration syntax
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Check Logstash configuration
+      tags:
+      - logstash
+  /services/logstash/logs:
+    get:
+      consumes:
+      - application/json
+      description: Get recent Logstash service logs
+      parameters:
+      - description: 'Number of lines (default: 50)'
+        in: query
+        name: lines
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get Logstash logs
+      tags:
+      - logstash
+  /services/logstash/pipelines:
+    get:
+      consumes:
+      - application/json
+      description: List all Logstash pipelines and their status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get Logstash pipelines
+      tags:
+      - logstash
+  /services/logstash/pipelines/toggle:
+    post:
+      consumes:
+      - application/json
+      description: Enable or disable a Logstash pipeline
+      parameters:
+      - description: Pipeline toggle request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.PipelineToggleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Toggle Logstash pipeline
+      tags:
+      - logstash
+  /services/rport/connection:
+    get:
+      consumes:
+      - application/json
+      description: Check RPort connection status to remote server
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Check RPort connection
+      tags:
+      - rport
+  /services/rport/logs:
+    get:
+      consumes:
+      - application/json
+      description: Get recent RPort service logs
+      parameters:
+      - description: 'Number of lines (default: 50)'
+        in: query
+        name: lines
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get RPort logs
+      tags:
+      - rport
+  /services/rsyslog/config/check:
+    get:
+      consumes:
+      - application/json
+      description: Check Rsyslog firewall configuration status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Check Rsyslog configuration
+      tags:
+      - rsyslog
+  /services/rsyslog/config/toggle:
+    post:
+      consumes:
+      - application/json
+      description: Enable or disable Rsyslog firewall log collection
+      parameters:
+      - description: Enable/Disable request
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: boolean
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Toggle Rsyslog firewall configuration
+      tags:
+      - rsyslog
+  /services/rsyslog/firewall-logs:
+    get:
+      consumes:
+      - application/json
+      description: Get recent firewall logs
+      parameters:
+      - description: 'Number of lines (default: 50)'
+        in: query
+        name: lines
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get Rsyslog firewall logs
+      tags:
+      - rsyslog
+  /services/rsyslog/logs:
+    get:
+      consumes:
+      - application/json
+      description: Get recent Rsyslog service logs
+      parameters:
+      - description: 'Number of lines (default: 50)'
+        in: query
+        name: lines
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get Rsyslog service logs
+      tags:
+      - rsyslog
+  /services/suricata/alerts:
+    get:
+      consumes:
+      - application/json
+      description: Get recent Suricata alerts
+      parameters:
+      - description: 'Number of alerts (default: 100)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get Suricata alerts
+      tags:
+      - suricata
+  /services/suricata/config/check:
+    get:
+      consumes:
+      - application/json
+      description: Test Suricata configuration syntax
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Check Suricata configuration
+      tags:
+      - suricata
+  /services/suricata/home-net:
+    get:
+      consumes:
+      - application/json
+      description: Get the current HOME_NET configuration
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get Suricata HOME_NET configuration
+      tags:
+      - suricata
+    put:
+      consumes:
+      - application/json
+      description: Update the HOME_NET configuration
+      parameters:
+      - description: HOME_NET update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.UpdateSuricataHomeNetRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update Suricata HOME_NET configuration
+      tags:
+      - suricata
+  /services/suricata/interface:
+    get:
+      consumes:
+      - application/json
+      description: Get the current network interface being monitored by Suricata
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get Suricata monitoring interface
+      tags:
+      - suricata
+    put:
+      consumes:
+      - application/json
+      description: Change the network interface monitored by Suricata
+      parameters:
+      - description: Interface update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/services.UpdateSuricataInterfaceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update Suricata monitoring interface
+      tags:
+      - suricata
+  /services/suricata/logs:
+    get:
+      consumes:
+      - application/json
+      description: Get recent Suricata service logs
+      parameters:
+      - description: 'Number of lines (default: 50)'
+        in: query
+        name: lines
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get Suricata logs
+      tags:
+      - suricata
+  /services/suricata/rules/update:
+    post:
+      consumes:
+      - application/json
+      description: Update Suricata detection rules
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update Suricata rules
+      tags:
+      - suricata
+  /services/wazuh/logs:
+    get:
+      consumes:
+      - application/json
+      description: Get recent Wazuh agent logs
+      parameters:
+      - description: 'Number of lines (default: 50)'
+        in: query
+        name: lines
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get Wazuh agent logs
+      tags:
+      - wazuh
+schemes:
+- http
+- https
+swagger: "2.0"

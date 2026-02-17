@@ -1,0 +1,22 @@
+services:
+  nta-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nta-backend
+    # ports section removed due to network_mode: host conflict
+    env_file:
+      - .env
+    volumes:
+      - /sys:/sys
+      - /etc/netplan:/etc/netplan:ro
+      - ./logs:/root/logs
+    privileged: true
+    network_mode: host
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
