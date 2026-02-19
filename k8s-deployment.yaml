@@ -1,0 +1,119 @@
+# ConfigMap for non-sensitive environment variables
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nta-backend-config
+
+data:
+  APP_NAME: "NTA Backend"
+  APP_ENV: "production"
+  APP_PORT: "8080"
+  APP_HOST: "0.0.0.0"
+  LOG_LEVEL: "info"
+  LOG_FORMAT: "json"
+  CORS_ALLOWED_ORIGINS: "*"
+  CORS_ALLOWED_METHODS: "GET,POST,PUT,DELETE,OPTIONS"
+  CORS_ALLOWED_HEADERS: "*"
+  API_PREFIX: "/api/v1"
+  API_TIMEOUT: "30s"
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_REQUESTS: "100"
+  RATE_LIMIT_WINDOW: "1m"
+  DEFAULT_NETWORK_INTERFACE: "enp3s0"
+  NETPLAN_CONFIG_PATH: "/etc/netplan/00-installer-config.yaml"
+  LOGSTASH_CONFIG_PATH: "/etc/logstash"
+  SURICATA_CONFIG_PATH: "/etc/suricata/suricata.yaml"
+  RSYSLOG_CONFIG_PATH: "/etc/rsyslog.d"
+  WAZUH_CONFIG_PATH: "/var/ossec"
+  RPORT_CONFIG_PATH: "/etc/rport"
+
+---
+# Secret for sensitive environment variables
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nta-backend-secret
+
+type: Opaque
+data:
+  JWT_SECRET: eW91ci1zZWNyZXQta2V5LWNobGFuZ2UtdGhpcyA= # base64 for 'your-secret-key-change-this'
+  JWT_EXPIRATION: MjRo # base64 for '24h'
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nta-backend
+  labels:
+    app: nta-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nta-backend
+  template:
+    metadata:
+      labels:
+        app: nta-backend
+    spec:
+      containers:
+        - name: nta-backend
+          image: <DOCKER_IMAGE>
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: nta-backend-config
+            - secretRef:
+                name: nta-backend-secret
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nta-backend
+spec:
+  selector:
+    app: nta-backend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nta-backend-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nta-backend
+                port:
+                  number: 80

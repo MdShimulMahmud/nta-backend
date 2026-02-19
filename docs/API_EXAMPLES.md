@@ -238,13 +238,37 @@ curl -X GET "http://localhost:8080/api/v1/services/rport/logs?lines=50"
 
 ## Rsyslog
 
-### Check Rsyslog configuration status
+### Get Rsyslog service status
 
 ```bash
-curl -X GET http://localhost:8080/api/v1/services/rsyslog/config/check
+curl -X GET http://localhost:8080/api/v1/services/rsyslog/status
 ```
 
-### Enable firewall log collection
+### Start Rsyslog service
+
+```bash
+curl -X POST http://localhost:8080/api/v1/services/rsyslog/action \
+  -H "Content-Type: application/json" \
+  -d '{"action": "start"}'
+```
+
+### Stop Rsyslog service
+
+```bash
+curl -X POST http://localhost:8080/api/v1/services/rsyslog/action \
+  -H "Content-Type: application/json" \
+  -d '{"action": "stop"}'
+```
+
+### Restart Rsyslog service
+
+```bash
+curl -X POST http://localhost:8080/api/v1/services/rsyslog/action \
+  -H "Content-Type: application/json" \
+  -d '{"action": "restart"}'
+```
+
+### Enable firewall log collection (Enable config)
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/services/rsyslog/config/toggle \
@@ -252,7 +276,7 @@ curl -X POST http://localhost:8080/api/v1/services/rsyslog/config/toggle \
   -d '{"enabled": true}'
 ```
 
-### Disable firewall log collection
+### Disable firewall log collection (Disable config)
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/services/rsyslog/config/toggle \
@@ -260,13 +284,19 @@ curl -X POST http://localhost:8080/api/v1/services/rsyslog/config/toggle \
   -d '{"enabled": false}'
 ```
 
-### Get firewall logs
+### Check Rsyslog configuration status (enabled/config/port)
+
+```bash
+curl -X GET http://localhost:8080/api/v1/services/rsyslog/config/check
+```
+
+### Get firewall logs (tail)
 
 ```bash
 curl -X GET "http://localhost:8080/api/v1/services/rsyslog/firewall-logs?lines=100"
 ```
 
-### Get Rsyslog service logs
+### Get Rsyslog service logs (tail)
 
 ```bash
 curl -X GET "http://localhost:8080/api/v1/services/rsyslog/logs?lines=50"
